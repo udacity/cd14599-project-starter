@@ -3,6 +3,7 @@
 Welcome to the Udatracker Codelab! This guide will walk you through implementing the backend logic and API for your project using a strict **Test-Driven Development (TDD)** workflow.
 
 Your goal is to use the provided test suites to drive your implementation. You'll follow the classic **Red → Green → Refactor** cycle: run a test to see it fail, write the code to make it pass, and then move on to the next feature.
+<img width="1261" height="805" alt="Screenshot 2025-07-10 at 19 39 56" src="https://github.com/user-attachments/assets/375894d2-6b0b-43a6-aca9-e0e8cc52d20a" />
 
 ---
 
