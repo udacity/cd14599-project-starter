@@ -25,5 +25,5 @@ def order_tracker(mock_storage):
     return OrderTracker(mock_storage)
 
 #
-# --- The student will add test functions below this line during the codelab ---
+# --- TODO: add test functions below this line ---
 #
