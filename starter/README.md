@@ -8,6 +8,7 @@ This directory contains the starter code for the Udatracker project. The initial
 │   ├── app.py
 │   ├── in_memory_storage.py
 │   ├── order_tracker.py
+│   ├── requirements.txt
 │   └── tests
 │       ├── test_api.py
 │       └── test_order_tracker.py

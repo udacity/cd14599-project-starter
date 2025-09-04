@@ -9,7 +9,7 @@ Your goal is to use the provided test suites to drive your implementation. You'l
 
 ## Part 1: Environment Setup
 
-If you are completing this project in the Udacity Workspace environment, you do not need to install anything; the dependencies should already be isntalled. If you are working locally, follow these steps to ensure your environment is ready.
+If you are completing this project in the Udacity Workspace environment, you do not need to install anything; the dependencies should already be installed. If you are working locally, follow these steps to ensure your environment is ready.
 
 
 1.  Navigate to the `backend` directory within the `starter` directory
@@ -24,8 +24,9 @@ python app.py
 
 Then check that the application is running:
 
-- If you are working in the Udacity Workspace, select the "Flask App" option from the links menu in a new tab
+- If you are working in the Udacity Workspace, select the "Flask App" option from the Links menu to open the app in a new tab
 - If you are working locally, open a new tab of your web browser and go to `http://127.0.0.1:5000/`
+- In either setting, you can type control-C to stop the server. The server also may stop on its own as you edit the source code. To restart, run `python app.py` again
 
 You will see that there are some parts of the application that produce errors. Your task in this project is to complete the backend code and eliminate those errors. Let's get started!
 
@@ -152,11 +153,26 @@ Once all the unit tests for `OrderTracker` are written and passing, you can buil
 Now for the final reward. Let's see your application in action!
 
 1.  **Run the Flask Server**:
+
     ```bash
     python app.py
     ```
 
 2.  **Open in Browser**:
-    Open your web browser and go to `http://127.0.0.1:5000/`.
+
+   - If you are working in the Udacity Workspace, select the "Flask App" option from the Links menu to open the app in a new tab
+   - If you are working locally, open a new tab of your web browser and go to `http://127.0.0.1:5000/`
+
+3. **Interact with the App**:
+
+   When you have the application open in your browser, you should see a simple frontend interface. From here you can:
+
+    - Add an order using the form
+    - View a list of all orders to confirm that your form inputs are being saved
+      - *Note:* we are using in-memory storage, so this list of orders will not persist between sessions
+    - Update an order's status (for example, changing it from "pending" to "shipped")
+    - Filter orders by status to check that your query routes work correctly
+
+    If everything is implemented correctly, each of these actions should succeed without errors and reflect the current state of your `OrderTracker` logic.
 
 🎉 **Congratulations!** You have completed the project with a true test-first approach.
