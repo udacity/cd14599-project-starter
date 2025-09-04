@@ -14,12 +14,13 @@ If you are completing this project in the Udacity Workspace environment, you do 
 
 1.  Navigate to the `backend` directory within the `starter` directory
 2.  Activate your virtual environment (`source venv/bin/activate` for macOS/Linux, `.\venv\Scripts\Activate.ps1` for Windows)
+   - For the remaining examples, we will use macOS/Linux style paths, e.g. `starter/backend` rather than `starter\backend`. If you are using Windows, you will need to replace `/` with `\` in these commands.
 3.  Install dependencies from `requirements.txt` using `pip` (`pip install -r requirements.txt`)
 
-To ensure that the dependencies have been installed, run the Flask server (from the `backend` directory):
+To ensure that the dependencies have been installed, run the Flask server (from the `starter` directory, one level above the `backend` directory):
 
 ```bash
-python app.py
+python -m backend.app
 ```
 
 Then check that the application is running:
@@ -52,8 +53,8 @@ We will build the `OrderTracker` class one test at a time. Open both `backend/or
 2.  **See It Fail (RED)**: Run the test. It will fail because the `add_order` method is empty.
 
     ```bash
-    # Run this from the backend directory
-    pytest tests/test_order_tracker.py
+    # Run this from the project root (starter/)
+    pytest backend/tests/test_order_tracker.py
     ```
 
 3.  **Write The Code (GREEN)**: In `order_tracker.py`, write the *minimum* code in the `add_order` method to make the test pass.
@@ -135,14 +136,15 @@ Once all the unit tests for `OrderTracker` are written and passing, you can buil
 1.  **See The API Tests Fail (RED)**: Run the integration tests. They will fail because the API endpoints in `app.py` are empty.
 
     ```bash
-    pytest tests/test_api.py
+    # Run this from the project root (starter/)
+    pytest backend/tests/test_api.py
     ```
 
 2.  **Implement The API Endpoints (GREEN)**: Open `backend/app.py`. Fill in the logic for each route function to make the tests pass.
 
 3.  **Final Test Run**: After implementing all endpoints, run the entire test suite.
     ```bash
-    pytest tests/
+    pytest
     ```
     All tests should now pass.
 
@@ -155,7 +157,7 @@ Now for the final reward. Let's see your application in action!
 1.  **Run the Flask Server**:
 
     ```bash
-    python app.py
+    python -m backend.app
     ```
 
 2.  **Open in Browser**:
