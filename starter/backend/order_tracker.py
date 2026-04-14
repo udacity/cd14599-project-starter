@@ -101,7 +101,46 @@ class OrderTracker:
         self.storage.save_order(order_id, updated_order)
 
     def list_all_orders(self):
-        pass
+        """
+        Retrieve all orders from storage.
+
+        Returns:
+            A list of dicts, each containing the order data including the order_id.
+            Returns an empty list when no orders exist.
+        """
+        all_orders = self.storage.get_all_orders()
+        result = []
+        for order_id, order_data in all_orders.items():
+            merged = order_data.copy()
+            merged["order_id"] = order_id
+            result.append(merged)
+        return result
 
     def list_orders_by_status(self, status: str):
-        pass
+        """
+        Retrieve orders filtered by their status.
+
+        Args:
+            status: The status to filter by. Must be one of the valid statuses.
+
+        Returns:
+            A list of dicts, each containing the order data including the order_id,
+            for orders matching the given status. Returns an empty list when no
+            orders match.
+
+        Raises:
+            ValueError: If status is empty, not a string, or not in VALID_STATUSES.
+        """
+        if not isinstance(status, str) or not status.strip():
+            raise ValueError("status must be a non-empty string.")
+        if status not in VALID_STATUSES:
+            raise ValueError(f"Invalid status: '{status}'. Valid statuses are: {sorted(VALID_STATUSES)}")
+
+        all_orders = self.storage.get_all_orders()
+        result = []
+        for order_id, order_data in all_orders.items():
+            if order_data.get("status") == status:
+                merged = order_data.copy()
+                merged["order_id"] = order_id
+                result.append(merged)
+        return result

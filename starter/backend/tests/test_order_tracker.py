@@ -339,7 +339,7 @@ def test_update_order_status_whitespace_new_status(order_tracker, mock_storage):
 
 
 def test_update_order_status_none_new_status(order_tracker, mock_storage):
-    """Updating with None as new_status should raise ValueError and not call storage methods."""
+    """Updating with None as new_status should raise ValueError without calling storage methods."""
     with pytest.raises(ValueError, match="status"):
         order_tracker.update_order_status("ORD-001", None)
 
@@ -348,7 +348,7 @@ def test_update_order_status_none_new_status(order_tracker, mock_storage):
 
 
 def test_update_order_status_non_string_new_status(order_tracker, mock_storage):
-    """Updating with a non-string new_status should raise ValueError and not call storage methods."""
+    """Updating with a non-string new_status should raise ValueError without calling storage methods."""
     with pytest.raises(ValueError, match="status"):
         order_tracker.update_order_status("ORD-001", 42)
 
@@ -377,3 +377,229 @@ def test_update_order_status_all_valid_transitions(order_tracker, mock_storage):
         order_tracker.update_order_status("ORD-001", new_status)
         call_args = mock_storage.save_order.call_args
         assert call_args[0][1]["status"] == new_status
+
+
+# --- Tests for list_all_orders ---
+
+def test_list_all_orders_returns_all_orders(order_tracker, mock_storage):
+    """list_all_orders should return a list of all orders with order_id merged in."""
+    mock_storage.get_all_orders.return_value = {
+        "ORD-001": {"item_name": "Wireless Mouse", "quantity": 2, "customer_id": "CUST-001", "status": "pending"},
+        "ORD-002": {"item_name": "Mechanical Keyboard", "quantity": 1, "customer_id": "CUST-002", "status": "shipped"},
+    }
+
+    result = order_tracker.list_all_orders()
+
+    assert isinstance(result, list)
+    assert len(result) == 2
+
+    # Verify each order has order_id merged
+    order_ids = {order["order_id"] for order in result}
+    assert order_ids == {"ORD-001", "ORD-002"}
+
+    # Verify all expected fields are present in each order
+    for order in result:
+        assert "order_id" in order
+        assert "item_name" in order
+        assert "quantity" in order
+        assert "customer_id" in order
+        assert "status" in order
+
+
+def test_list_all_orders_empty_storage(order_tracker, mock_storage):
+    """list_all_orders should return an empty list when storage has no orders."""
+    mock_storage.get_all_orders.return_value = {}
+
+    result = order_tracker.list_all_orders()
+
+    assert result == []
+
+
+def test_list_all_orders_single_order(order_tracker, mock_storage):
+    """list_all_orders should return a list with one order when storage has one order."""
+    mock_storage.get_all_orders.return_value = {
+        "ORD-001": {"item_name": "Monitor", "quantity": 3, "customer_id": "CUST-010", "status": "delivered"},
+    }
+
+    result = order_tracker.list_all_orders()
+
+    assert len(result) == 1
+    assert result[0]["order_id"] == "ORD-001"
+    assert result[0]["item_name"] == "Monitor"
+    assert result[0]["quantity"] == 3
+    assert result[0]["customer_id"] == "CUST-010"
+    assert result[0]["status"] == "delivered"
+
+
+def test_list_all_orders_calls_get_all_orders(order_tracker, mock_storage):
+    """list_all_orders should call storage.get_all_orders exactly once."""
+    mock_storage.get_all_orders.return_value = {}
+
+    order_tracker.list_all_orders()
+
+    mock_storage.get_all_orders.assert_called_once()
+
+
+def test_list_all_orders_returns_copies(order_tracker, mock_storage):
+    """list_all_orders should return copies of order data, not references to storage data."""
+    original_order = {"item_name": "Test", "quantity": 1, "customer_id": "C-1", "status": "pending"}
+    mock_storage.get_all_orders.return_value = {"ORD-001": original_order}
+
+    result = order_tracker.list_all_orders()
+
+    # Mutating the returned result should not affect the original storage data
+    result[0]["item_name"] = "Mutated"
+
+    assert original_order["item_name"] == "Test"
+
+
+# --- Tests for list_orders_by_status ---
+
+def test_list_orders_by_status_success(order_tracker, mock_storage):
+    """list_orders_by_status should return only orders matching the given status."""
+    mock_storage.get_all_orders.return_value = {
+        "ORD-001": {"item_name": "Wireless Mouse", "quantity": 2, "customer_id": "CUST-001", "status": "shipped"},
+        "ORD-002": {"item_name": "Mechanical Keyboard", "quantity": 1, "customer_id": "CUST-002", "status": "pending"},
+        "ORD-003": {"item_name": "Monitor", "quantity": 1, "customer_id": "CUST-003", "status": "shipped"},
+    }
+
+    result = order_tracker.list_orders_by_status("shipped")
+
+    assert isinstance(result, list)
+    assert len(result) == 2
+    order_ids = {order["order_id"] for order in result}
+    assert order_ids == {"ORD-001", "ORD-003"}
+
+    for order in result:
+        assert order["status"] == "shipped"
+        assert "order_id" in order
+        assert "item_name" in order
+        assert "quantity" in order
+        assert "customer_id" in order
+
+
+def test_list_orders_by_status_empty_storage(order_tracker, mock_storage):
+    """list_orders_by_status should return an empty list when storage has no orders."""
+    mock_storage.get_all_orders.return_value = {}
+
+    result = order_tracker.list_orders_by_status("pending")
+
+    assert result == []
+
+
+def test_list_orders_by_status_no_matching_orders(order_tracker, mock_storage):
+    """list_orders_by_status should return an empty list when no orders match the status."""
+    mock_storage.get_all_orders.return_value = {
+        "ORD-001": {"item_name": "Wireless Mouse", "quantity": 2, "customer_id": "CUST-001", "status": "pending"},
+        "ORD-002": {"item_name": "Mechanical Keyboard", "quantity": 1, "customer_id": "CUST-002", "status": "processing"},
+    }
+
+    result = order_tracker.list_orders_by_status("shipped")
+
+    assert result == []
+
+
+def test_list_orders_by_status_single_match(order_tracker, mock_storage):
+    """list_orders_by_status should return a single order when only one matches."""
+    mock_storage.get_all_orders.return_value = {
+        "ORD-001": {"item_name": "Wireless Mouse", "quantity": 2, "customer_id": "CUST-001", "status": "delivered"},
+        "ORD-002": {"item_name": "Mechanical Keyboard", "quantity": 1, "customer_id": "CUST-002", "status": "pending"},
+    }
+
+    result = order_tracker.list_orders_by_status("delivered")
+
+    assert len(result) == 1
+    assert result[0]["order_id"] == "ORD-001"
+    assert result[0]["status"] == "delivered"
+
+
+def test_list_orders_by_status_all_valid_statuses(order_tracker, mock_storage):
+    """list_orders_by_status should work for every status in VALID_STATUSES."""
+    orders_by_status = {status: [] for status in VALID_STATUSES}
+
+    for i, status in enumerate(VALID_STATUSES):
+        order_id = f"ORD-{i:03d}"
+        orders_by_status[status].append({
+            "item_name": f"Item {i}",
+            "quantity": i + 1,
+            "customer_id": f"CUST-{i:03d}",
+            "status": status,
+        })
+
+    # Build the flat dict for the mock
+    all_orders = {}
+    for status_orders in orders_by_status.values():
+        for order in status_orders:
+            order_id = f"ORD-{order['quantity'] - 1:03d}"
+            all_orders[order_id] = {"item_name": order["item_name"], "quantity": order["quantity"], "customer_id": order["customer_id"], "status": order["status"]}
+
+    mock_storage.get_all_orders.return_value = all_orders
+
+    for status in VALID_STATUSES:
+        result = order_tracker.list_orders_by_status(status)
+        assert len(result) == 1
+        assert result[0]["status"] == status
+
+
+def test_list_orders_by_status_empty_string(order_tracker, mock_storage):
+    """list_orders_by_status with an empty string should raise ValueError."""
+    with pytest.raises(ValueError, match="status"):
+        order_tracker.list_orders_by_status("")
+
+    mock_storage.get_all_orders.assert_not_called()
+
+
+def test_list_orders_by_status_whitespace_only(order_tracker, mock_storage):
+    """list_orders_by_status with a whitespace-only string should raise ValueError."""
+    with pytest.raises(ValueError, match="status"):
+        order_tracker.list_orders_by_status("   ")
+
+    mock_storage.get_all_orders.assert_not_called()
+
+
+def test_list_orders_by_status_none(order_tracker, mock_storage):
+    """list_orders_by_status with None should raise ValueError."""
+    with pytest.raises(ValueError, match="status"):
+        order_tracker.list_orders_by_status(None)
+
+    mock_storage.get_all_orders.assert_not_called()
+
+
+def test_list_orders_by_status_non_string_type(order_tracker, mock_storage):
+    """list_orders_by_status with a non-string type should raise ValueError."""
+    with pytest.raises(ValueError, match="status"):
+        order_tracker.list_orders_by_status(12345)
+
+    mock_storage.get_all_orders.assert_not_called()
+
+
+def test_list_orders_by_status_invalid_status_value(order_tracker, mock_storage):
+    """list_orders_by_status with a status not in VALID_STATUSES should raise ValueError."""
+    with pytest.raises(ValueError, match="Invalid status"):
+        order_tracker.list_orders_by_status("invalid_status")
+
+    mock_storage.get_all_orders.assert_not_called()
+
+
+def test_list_orders_by_status_case_sensitive(order_tracker, mock_storage):
+    """list_orders_by_status should be case-sensitive: 'Shipped' should not match 'shipped'."""
+    mock_storage.get_all_orders.return_value = {
+        "ORD-001": {"item_name": "Wireless Mouse", "quantity": 2, "customer_id": "CUST-001", "status": "shipped"},
+    }
+
+    result = order_tracker.list_orders_by_status("Shipped")
+
+    assert result == []
+
+
+def test_list_orders_by_status_returns_copies(order_tracker, mock_storage):
+    """list_orders_by_status should return copies of order data, not references to storage data."""
+    original_order = {"item_name": "Test", "quantity": 1, "customer_id": "C-1", "status": "pending"}
+    mock_storage.get_all_orders.return_value = {"ORD-001": original_order}
+
+    result = order_tracker.list_orders_by_status("pending")
+
+    # Mutating the returned result should not affect the original storage data
+    result[0]["item_name"] = "Mutated"
+
+    assert original_order["item_name"] == "Test"
