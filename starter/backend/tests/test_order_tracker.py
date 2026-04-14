@@ -142,3 +142,67 @@ def test_add_order_missing_fields(order_tracker, mock_storage):
             customer_id="CUST-007",
         )
     mock_storage.save_order.assert_not_called()
+
+
+# --- Tests for get_order_by_id ---
+
+def test_get_order_by_id_success(order_tracker, mock_storage):
+    """Retrieving an existing order should return the order data with order_id included."""
+    mock_storage.get_order.return_value = {
+        "item_name": "Wireless Mouse",
+        "quantity": 2,
+        "customer_id": "CUST-001",
+        "status": "pending",
+    }
+
+    result = order_tracker.get_order_by_id("ORD-001")
+
+    mock_storage.get_order.assert_called_once_with("ORD-001")
+    assert result is not None
+    assert result["order_id"] == "ORD-001"
+    assert result["item_name"] == "Wireless Mouse"
+    assert result["quantity"] == 2
+    assert result["customer_id"] == "CUST-001"
+    assert result["status"] == "pending"
+
+
+def test_get_order_by_id_not_found(order_tracker, mock_storage):
+    """Retrieving a non-existent order should return None."""
+    mock_storage.get_order.return_value = None
+
+    result = order_tracker.get_order_by_id("ORD-NONEXISTENT")
+
+    mock_storage.get_order.assert_called_once_with("ORD-NONEXISTENT")
+    assert result is None
+
+
+def test_get_order_by_id_empty_string(order_tracker, mock_storage):
+    """Retrieving an order with an empty order_id should raise ValueError."""
+    with pytest.raises(ValueError, match="order_id"):
+        order_tracker.get_order_by_id("")
+
+    mock_storage.get_order.assert_not_called()
+
+
+def test_get_order_by_id_whitespace_only(order_tracker, mock_storage):
+    """Retrieving an order with a whitespace-only order_id should raise ValueError."""
+    with pytest.raises(ValueError, match="order_id"):
+        order_tracker.get_order_by_id("   ")
+
+    mock_storage.get_order.assert_not_called()
+
+
+def test_get_order_by_id_non_string_type(order_tracker, mock_storage):
+    """Retrieving an order with a non-string order_id should raise ValueError."""
+    with pytest.raises(ValueError, match="order_id"):
+        order_tracker.get_order_by_id(12345)
+
+    mock_storage.get_order.assert_not_called()
+
+
+def test_get_order_by_id_none_value(order_tracker, mock_storage):
+    """Retrieving an order with None as order_id should raise ValueError."""
+    with pytest.raises(ValueError, match="order_id"):
+        order_tracker.get_order_by_id(None)
+
+    mock_storage.get_order.assert_not_called()

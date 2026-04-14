@@ -40,7 +40,30 @@ class OrderTracker:
         self.storage.save_order(order_id, order_data)
 
     def get_order_by_id(self, order_id: str):
-        pass
+        """
+        Retrieve an order by its ID.
+
+        Args:
+            order_id: The unique identifier of the order to retrieve.
+
+        Returns:
+            A dict containing the order data including the order_id,
+            or None if no order with the given ID exists.
+
+        Raises:
+            ValueError: If order_id is empty or not a string.
+        """
+        if not isinstance(order_id, str) or not order_id.strip():
+            raise ValueError("order_id must be a non-empty string.")
+
+        order_data = self.storage.get_order(order_id)
+        if order_data is None:
+            return None
+
+        # Return a copy with order_id included for convenience
+        result = order_data.copy()
+        result["order_id"] = order_id
+        return result
 
     def update_order_status(self, order_id: str, new_status: str):
         pass
