@@ -1,6 +1,9 @@
 # This module contains the OrderTracker class, which encapsulates the core
 # business logic for managing orders.
 
+VALID_STATUSES = {"pending", "processing", "shipped", "delivered", "cancelled"}
+
+
 class OrderTracker:
     """
     Manages customer orders, providing functionalities to add, update,
@@ -66,7 +69,36 @@ class OrderTracker:
         return result
 
     def update_order_status(self, order_id: str, new_status: str):
-        pass
+        """
+        Update the status of an existing order.
+
+        Args:
+            order_id: The unique identifier of the order to update.
+            new_status: The new status to set. Must be one of the valid statuses.
+
+        Raises:
+            ValueError: If order_id is invalid, new_status is invalid,
+                        or the order does not exist.
+        """
+        # Validate order_id
+        if not isinstance(order_id, str) or not order_id.strip():
+            raise ValueError("order_id must be a non-empty string.")
+
+        # Validate new_status
+        if not isinstance(new_status, str) or not new_status.strip():
+            raise ValueError("new_status must be a non-empty string.")
+        if new_status not in VALID_STATUSES:
+            raise ValueError(f"Invalid status: '{new_status}'. Valid statuses are: {sorted(VALID_STATUSES)}")
+
+        # Check order existence
+        order_data = self.storage.get_order(order_id)
+        if order_data is None:
+            raise ValueError(f"Order with ID '{order_id}' does not exist.")
+
+        # Update only the status field
+        updated_order = order_data.copy()
+        updated_order["status"] = new_status
+        self.storage.save_order(order_id, updated_order)
 
     def list_all_orders(self):
         pass

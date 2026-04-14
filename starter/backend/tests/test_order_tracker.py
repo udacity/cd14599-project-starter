@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, call
-from ..order_tracker import OrderTracker
+from ..order_tracker import OrderTracker, VALID_STATUSES
 
 # --- Fixtures for Unit Tests ---
 
@@ -206,3 +206,174 @@ def test_get_order_by_id_none_value(order_tracker, mock_storage):
         order_tracker.get_order_by_id(None)
 
     mock_storage.get_order.assert_not_called()
+
+
+# --- Tests for update_order_status ---
+
+def test_update_order_status_success(order_tracker, mock_storage):
+    """Successfully updating an order's status should call save_order with the updated order data."""
+    # Simulate an existing order with "pending" status
+    mock_storage.get_order.return_value = {
+        "item_name": "Wireless Mouse",
+        "quantity": 2,
+        "customer_id": "CUST-001",
+        "status": "pending",
+    }
+
+    order_tracker.update_order_status("ORD-001", "shipped")
+
+    # Verify get_order was called with the correct order_id
+    mock_storage.get_order.assert_called_once_with("ORD-001")
+
+    # Verify save_order was called with the updated order data
+    mock_storage.save_order.assert_called_once_with(
+        "ORD-001",
+        {
+            "item_name": "Wireless Mouse",
+            "quantity": 2,
+            "customer_id": "CUST-001",
+            "status": "shipped",
+        },
+    )
+
+
+def test_update_order_status_preserves_all_fields(order_tracker, mock_storage):
+    """Updating status should preserve item_name, quantity, and customer_id unchanged."""
+    original_order = {
+        "item_name": "Mechanical Keyboard",
+        "quantity": 5,
+        "customer_id": "CUST-042",
+        "status": "processing",
+    }
+    mock_storage.get_order.return_value = original_order
+
+    order_tracker.update_order_status("ORD-042", "delivered")
+
+    # Extract the saved order data from the mock call
+    call_args = mock_storage.save_order.call_args
+    saved_order = call_args[0][1]
+
+    assert saved_order["item_name"] == "Mechanical Keyboard"
+    assert saved_order["quantity"] == 5
+    assert saved_order["customer_id"] == "CUST-042"
+    assert saved_order["status"] == "delivered"
+
+
+def test_update_order_status_nonexistent_order(order_tracker, mock_storage):
+    """Updating a non-existent order should raise ValueError and not call save_order."""
+    # By default, mock_storage.get_order returns None (order not found)
+
+    with pytest.raises(ValueError, match="does not exist"):
+        order_tracker.update_order_status("ORD-NONEXISTENT", "shipped")
+
+    mock_storage.save_order.assert_not_called()
+
+
+def test_update_order_status_invalid_status(order_tracker, mock_storage):
+    """Updating with an invalid status value should raise ValueError and not call save_order."""
+    mock_storage.get_order.return_value = {
+        "item_name": "Wireless Mouse",
+        "quantity": 2,
+        "customer_id": "CUST-001",
+        "status": "pending",
+    }
+
+    with pytest.raises(ValueError, match="status"):
+        order_tracker.update_order_status("ORD-001", "invalid_status")
+
+    mock_storage.save_order.assert_not_called()
+
+
+def test_update_order_status_empty_order_id(order_tracker, mock_storage):
+    """Updating with an empty order_id should raise ValueError without calling storage methods."""
+    with pytest.raises(ValueError, match="order_id"):
+        order_tracker.update_order_status("", "shipped")
+
+    mock_storage.get_order.assert_not_called()
+    mock_storage.save_order.assert_not_called()
+
+
+def test_update_order_status_whitespace_order_id(order_tracker, mock_storage):
+    """Updating with a whitespace-only order_id should raise ValueError without calling storage methods."""
+    with pytest.raises(ValueError, match="order_id"):
+        order_tracker.update_order_status("   ", "shipped")
+
+    mock_storage.get_order.assert_not_called()
+    mock_storage.save_order.assert_not_called()
+
+
+def test_update_order_status_none_order_id(order_tracker, mock_storage):
+    """Updating with None as order_id should raise ValueError without calling storage methods."""
+    with pytest.raises(ValueError, match="order_id"):
+        order_tracker.update_order_status(None, "shipped")
+
+    mock_storage.get_order.assert_not_called()
+    mock_storage.save_order.assert_not_called()
+
+
+def test_update_order_status_non_string_order_id(order_tracker, mock_storage):
+    """Updating with a non-string order_id should raise ValueError without calling storage methods."""
+    with pytest.raises(ValueError, match="order_id"):
+        order_tracker.update_order_status(12345, "shipped")
+
+    mock_storage.get_order.assert_not_called()
+    mock_storage.save_order.assert_not_called()
+
+
+def test_update_order_status_empty_new_status(order_tracker, mock_storage):
+    """Updating with an empty new_status should raise ValueError and not call storage methods."""
+    with pytest.raises(ValueError, match="status"):
+        order_tracker.update_order_status("ORD-001", "")
+
+    mock_storage.get_order.assert_not_called()
+    mock_storage.save_order.assert_not_called()
+
+
+def test_update_order_status_whitespace_new_status(order_tracker, mock_storage):
+    """Updating with a whitespace-only new_status should raise ValueError and not call storage methods."""
+    with pytest.raises(ValueError, match="status"):
+        order_tracker.update_order_status("ORD-001", "   ")
+
+    mock_storage.get_order.assert_not_called()
+    mock_storage.save_order.assert_not_called()
+
+
+def test_update_order_status_none_new_status(order_tracker, mock_storage):
+    """Updating with None as new_status should raise ValueError and not call storage methods."""
+    with pytest.raises(ValueError, match="status"):
+        order_tracker.update_order_status("ORD-001", None)
+
+    mock_storage.get_order.assert_not_called()
+    mock_storage.save_order.assert_not_called()
+
+
+def test_update_order_status_non_string_new_status(order_tracker, mock_storage):
+    """Updating with a non-string new_status should raise ValueError and not call storage methods."""
+    with pytest.raises(ValueError, match="status"):
+        order_tracker.update_order_status("ORD-001", 42)
+
+    mock_storage.get_order.assert_not_called()
+    mock_storage.save_order.assert_not_called()
+
+
+def test_update_order_status_all_valid_transitions(order_tracker, mock_storage):
+    """Any transition between valid statuses should be allowed."""
+    mock_storage.get_order.return_value = {
+        "item_name": "Test Item",
+        "quantity": 1,
+        "customer_id": "CUST-001",
+        "status": "pending",
+    }
+
+    # Test transitioning from pending to every other valid status
+    for new_status in VALID_STATUSES - {"pending"}:
+        mock_storage.reset_mock()
+        mock_storage.get_order.return_value = {
+            "item_name": "Test Item",
+            "quantity": 1,
+            "customer_id": "CUST-001",
+            "status": "pending",
+        }
+        order_tracker.update_order_status("ORD-001", new_status)
+        call_args = mock_storage.save_order.call_args
+        assert call_args[0][1]["status"] == new_status
